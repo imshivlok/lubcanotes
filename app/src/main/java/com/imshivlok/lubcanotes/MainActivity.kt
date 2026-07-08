@@ -60,7 +60,7 @@ fun LUBCANotesApp() {
             when (currentDestination) {
                 AppDestinations.HOME -> {
                     // We will build your 4 category buttons here next
-                    Text(text = "Home Screen Content", modifier = Modifier.padding(innerPadding))
+                    HomeScreen(modifier = Modifier.padding(innerPadding))
                 }
                 AppDestinations.PROFILE -> {
                     // Your profile view goes here

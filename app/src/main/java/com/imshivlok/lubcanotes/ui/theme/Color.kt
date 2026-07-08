@@ -2,10 +2,10 @@ package com.imshivlok.lubcanotes.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Warm Minimalist Claude Light Palette
+val ClaudeBackground = Color(0xFFF9F8F4) // Warm sand/cream off-white surface
+val ClaudeSurface = Color(0xFFFFFFFF)    // Crisp inner white for card bodies
+val ClaudeBorder = Color(0xFFE6E4DD)     // Subtle soft clay separator line
+val ClaudeTextMain = Color(0xFF1F1E1D)   // Soft dark brown-gray for high readability
+val ClaudeTextMuted = Color(0xFF706F6A)  // Muted gray for secondary descriptions
+val ClaudeAccent = Color(0xFFD96236)     // Signature human terracotta orange accent
