@@ -63,8 +63,7 @@ fun LUBCANotesApp() {
                     HomeScreen(modifier = Modifier.padding(innerPadding))
                 }
                 AppDestinations.PROFILE -> {
-                    // Your profile view goes here
-                    Text(text = "Profile Screen Content", modifier = Modifier.padding(innerPadding))
+                    ProfileScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
