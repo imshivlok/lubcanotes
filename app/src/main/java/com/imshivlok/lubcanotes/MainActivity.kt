@@ -57,10 +57,16 @@ fun LUBCANotesApp() {
         }
     ) {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-            Greeting(
-                name = "Android",
-                modifier = Modifier.padding(innerPadding)
-            )
+            when (currentDestination) {
+                AppDestinations.HOME -> {
+                    // We will build your 4 category buttons here next
+                    Text(text = "Home Screen Content", modifier = Modifier.padding(innerPadding))
+                }
+                AppDestinations.PROFILE -> {
+                    // Your profile view goes here
+                    Text(text = "Profile Screen Content", modifier = Modifier.padding(innerPadding))
+                }
+            }
         }
     }
 }
@@ -70,7 +76,6 @@ enum class AppDestinations(
     val icon: Int,
 ) {
     HOME("Home", R.drawable.ic_home),
-    FAVORITES("Favorites", R.drawable.ic_favorite),
     PROFILE("Profile", R.drawable.ic_account_box),
 }
 
