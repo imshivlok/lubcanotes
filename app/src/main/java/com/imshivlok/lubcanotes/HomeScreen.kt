@@ -173,7 +173,34 @@ fun HomeScreen(
                         "NBCA-204 Discrete Mathematical Structures",
                         "NBCA-205 Digital Electronics and Computer Organization"
                     )
-                    else -> listOf("Subject 1", "Subject 2", "Subject 3", "Subject 4", "Subject 5", "Subject 6")
+                    "Semester 3" -> listOf(
+                        "NBCA-301 Object Oriented Programming Using Java",
+                        "NBCA-302 Software Engineering",
+                        "NBCA-303 Computer Architecture",
+                        "NBCA-304 Python Programming",
+                        "NBCA-305 Accounting and Financial Management"
+                    )
+                    "Semester 4" -> listOf(
+                        "NBCA-401 Advance Java Technology",
+                        "NBCA-402 Design and Analysis of Algorithm",
+                        "NBCA-403 Web Design Concepts",
+                        "NBCA-404 Computer Graphics",
+                        "NBCA-405 Managerial Economics"
+                    )
+                    "Semester 5" -> listOf(
+                        "NBCA-501 Computer Network",
+                        "NBCA-502 Artificial Intelligence",
+                        "NBCA-503 Cyber Law",
+                        "NBCA-504 Numerical and Reasoning Ability Development",
+                        "NBCA-505X Departmental Elective-I"
+                    )
+                    "Semester 6" -> listOf(
+                        "NBCA-601 Machine Learning",
+                        "NBCA-602 Multimedia System",
+                        "NBCA-603 Software Project Management",
+                        "NBCA-604X Departmental Elective-II"
+                    )
+                    else -> listOf("Subject 1", "Subject 2", "Subject 3", "Subject 4", "Subject 5")
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
