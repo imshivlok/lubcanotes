@@ -37,6 +37,7 @@ import java.io.File
 @Composable
 fun HomeScreen(
     userName: String,
+    onProfileClick: () -> Unit, // ← Add this callback parameter
     modifier: Modifier = Modifier
 ) {
     var currentSubView by remember { mutableStateOf("") }
@@ -55,7 +56,12 @@ fun HomeScreen(
     var savedImageUriString by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        persistentName = sharedPrefs.getString("profile_name", userName) ?: userName
+        // Fetch full name from pref, fallback to the passed down userName variable
+        val fullName = sharedPrefs.getString("profile_name", userName) ?: userName
+
+        // Extract only the first name cleanly by splitting on spaces
+        persistentName = fullName.trim().split("\\s+".toRegex()).firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
+
         savedImageUriString = sharedPrefs.getString("profile_image_uri", "") ?: ""
 
         val verifiedLinks = NoticeRepository.loadAndVerifyDownloadedLinks(context)
@@ -317,7 +323,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(52.dp)
                             .border(BorderStroke(1.dp, ClaudeBorder), CircleShape)
-                            .background(ClaudeSurface, CircleShape),
+                            .background(ClaudeSurface, CircleShape)
+                            .clickable { onProfileClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (savedImageUriString.isNotEmpty()) {

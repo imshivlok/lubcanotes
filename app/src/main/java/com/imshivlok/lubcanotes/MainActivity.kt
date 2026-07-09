@@ -89,6 +89,7 @@ fun LUBCANotesApp() {
                 AppDestinations.HOME -> {
                     HomeScreen(
                         userName = firstName,
+                        onProfileClick = { currentDestination = AppDestinations.PROFILE }, // ← Pass navigation behavior here
                         modifier = Modifier.padding(innerPadding)
                     )
                 }

@@ -199,7 +199,7 @@ fun ProfileScreen(
                             .background(Color.Black.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "📸", style = MaterialTheme.typography.headlineSmall)
+//                        Text(text = "📸", style = MaterialTheme.typography.headlineSmall)
                     }
                 }
             }
