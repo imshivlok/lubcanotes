@@ -246,52 +246,82 @@ fun HomeScreen(
 
                 // --- LIVE NOTICES & CIRCULARS CONTAINER ---
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
-                        .background(ClaudeSurface, RoundedCornerShape(12.dp))
-                        .padding(24.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Text(text = "Notices & Circulars", color = ClaudeAccent, style = MaterialTheme.typography.titleMedium)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                            .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 36.dp) // Added padding space at bottom for half overlap bounds
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(text = "Notices & Circulars", color = ClaudeAccent, style = MaterialTheme.typography.titleMedium)
 
-                        if (isNoticesLoading) {
-                            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = ClaudeAccent)
-                            }
-                        } else {
-                            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                scrapedNotices.forEach { notice ->
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable(enabled = notice.link.isNotEmpty()) {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(notice.link))
-                                                context.startActivity(intent)
-                                            }
-                                    ) {
-                                        Text(
-                                            text = "• ${notice.title}",
-                                            color = ClaudeTextMain,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (notice.date.isNotEmpty()) {
+                            if (isNoticesLoading) {
+                                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator(color = ClaudeAccent)
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    scrapedNotices.forEach { notice ->
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable(enabled = notice.link.isNotEmpty()) {
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(notice.link))
+                                                    context.startActivity(intent)
+                                                }
+                                        ) {
                                             Text(
-                                                text = "  ${notice.date}",
-                                                color = ClaudeTextMuted,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                                                text = "• ${notice.title}",
+                                                color = ClaudeTextMain,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
                                             )
+                                            if (notice.date.isNotEmpty()) {
+                                                Text(
+                                                    text = "  ${notice.date}",
+                                                    color = ClaudeTextMuted,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    modifier = Modifier.padding(start = 8.dp, top = 2.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+
+                    // 💊 "View More" Pill Button Container (Centered, half inside, half outside)
+                    Box(
+                        modifier = Modifier
+                            .offset(y = 18.dp) // Offset exactly half of button's height to split position border bounds
+                            .height(36.dp)
+                            .background(ClaudeSurface, RoundedCornerShape(50.dp))
+                            .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(50.dp))
+                            .clickable {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.lkouniv.ac.in/en/news?Newslistslug=en-notices&cd=MwAzADcA"))
+                                context.startActivity(intent)
+                            }
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "View More",
+                            color = ClaudeTextMain,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
+
+                // Extra padding bottom space layout placeholder underneath overlapping button boundaries
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
