@@ -24,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.imshivlok.lubcanotes.ui.theme.LUBCANotesTheme
+import androidx.activity.compose.BackHandler
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,6 +47,11 @@ fun LUBCANotesApp() {
     }
 
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+
+// UNIVERSAL PROFILE BACK HANDLER
+    BackHandler(enabled = currentDestination != AppDestinations.HOME) {
+        currentDestination = AppDestinations.HOME
+    }
 
     // Declare mutable states with default fallbacks
     var profileName by rememberSaveable { mutableStateOf("") }
@@ -99,6 +105,7 @@ fun LUBCANotesApp() {
                         course = profileCourse,
                         semester = profileSemester,
                         college = profileCollege,
+                        onNavigateBack = { currentDestination = AppDestinations.HOME },
                         onProfileChanged = { updatedName, updatedCourse, updatedSemester, updatedCollege ->
                             profileName = updatedName
                             profileCourse = updatedCourse

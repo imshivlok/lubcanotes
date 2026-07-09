@@ -33,6 +33,7 @@ import coil.compose.rememberAsyncImagePainter
 import com.imshivlok.lubcanotes.ui.theme.*
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun HomeScreen(
@@ -42,6 +43,12 @@ fun HomeScreen(
 ) {
     var currentSubView by remember { mutableStateOf("") }
     var selectedSemesterLabel by remember { mutableStateOf("") }
+    BackHandler(enabled = currentSubView.isNotEmpty()) {
+        when (currentSubView) {
+            "Subjects" -> currentSubView = "Notes" // Step back sequentially
+            else -> currentSubView = ""            // Reset to dashboard for Notes/PYQ/DownloadedView
+        }
+    }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 

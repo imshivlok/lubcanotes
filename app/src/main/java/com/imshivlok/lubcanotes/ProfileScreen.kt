@@ -27,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.imshivlok.lubcanotes.ui.theme.*
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun ProfileScreen(
@@ -34,10 +35,14 @@ fun ProfileScreen(
     course: String,
     semester: String,
     college: String,
+    onNavigateBack: () -> Unit,
     onProfileChanged: (String, String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var isEditing by remember { mutableStateOf(false) }
+    BackHandler(enabled = isEditing) {
+        isEditing = false // Close the Edit Profile view, showing the normal Profile view again
+    }
     val context = LocalContext.current
 
     // 💾 Grab persistent storage instance
