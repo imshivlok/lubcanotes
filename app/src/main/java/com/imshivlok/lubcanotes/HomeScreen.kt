@@ -22,7 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.imshivlok.lubcanotes.ui.theme.*
+import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
 fun HomeScreen(
@@ -32,14 +35,32 @@ fun HomeScreen(
     var currentSubView by remember { mutableStateOf("") }
     var selectedSemesterLabel by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var scrapedNotices by remember { mutableStateOf<List<UniversityNotice>>(emptyList()) }
-    var isNoticesLoading by remember { mutableStateOf(true) }
+    var isNoticesLoading by remember { mutableStateOf(false) }
 
     val downloadedLinks = remember { mutableStateListOf<String>() }
 
+    // Instant load lifecycle sequence
     LaunchedEffect(Unit) {
-        scrapedNotices = NoticeRepository.fetchLatestNotices()
+        val verifiedLinks = NoticeRepository.loadAndVerifyDownloadedLinks(context)
+        downloadedLinks.clear()
+        downloadedLinks.addAll(verifiedLinks)
+
+        // 🔄 STEP 1: Pop cache instantly onto UI fields so screens never load completely blank
+        val localCache = NoticeRepository.loadNoticesFromCache(context)
+        if (localCache.isNotEmpty()) {
+            scrapedNotices = localCache
+        } else {
+            isNoticesLoading = true
+        }
+
+        // 📡 STEP 2: Fetch updates silently or populate container layout background streams
+        val freshNotices = NoticeRepository.fetchLatestNotices(context)
+        if (freshNotices.isNotEmpty()) {
+            scrapedNotices = freshNotices
+        }
         isNoticesLoading = false
     }
 
@@ -186,6 +207,79 @@ fun HomeScreen(
             }
         }
 
+        "DownloadedView" -> {
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(ClaudeBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "←",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = ClaudeAccent,
+                        modifier = Modifier
+                            .clickable { currentSubView = "" }
+                            .padding(end = 12.dp)
+                    )
+                    Column {
+                        Text(text = "Saved Offline Records", style = MaterialTheme.typography.headlineMedium, color = ClaudeTextMain)
+                        Text(text = "Verified internally inside LUBCANotes", style = MaterialTheme.typography.bodyMedium, color = ClaudeTextMuted)
+                    }
+                }
+
+                if (downloadedLinks.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
+                        Text(text = "No offline copies saved yet.", color = ClaudeTextMuted)
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        val itemsToShow = scrapedNotices.filter { downloadedLinks.contains(it.link) }
+
+                        if (itemsToShow.isEmpty()) {
+                            downloadedLinks.forEach { linkUrl ->
+                                val fileName = NoticeRepository.getFileNameFromUrl(linkUrl)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
+                                        .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                                        .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                                        .clickable { launchPdfIntent(context, linkUrl) }
+                                        .padding(20.dp)
+                                ) {
+                                    Text(text = fileName, color = ClaudeTextMain, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        } else {
+                            itemsToShow.forEach { notice ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight()
+                                        .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                                        .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                                        .clickable { launchPdfIntent(context, notice.link) }
+                                        .padding(20.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(text = notice.title, color = ClaudeTextMain, style = MaterialTheme.typography.bodyMedium)
+                                        Text(text = "Saved Local File", color = ClaudeAccent, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         else -> {
             // --- MAIN DASHBOARD VIEW ---
             Column(
@@ -225,7 +319,7 @@ fun HomeScreen(
                         .height(80.dp)
                         .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
                         .background(ClaudeSurface, RoundedCornerShape(12.dp))
-                        .clickable { }
+                        .clickable { currentSubView = "DownloadedView" }
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
@@ -236,9 +330,19 @@ fun HomeScreen(
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(text = "Downloaded Content", color = ClaudeTextMain, style = MaterialTheme.typography.titleMedium)
-                            Text(text = "View saved offline records", color = ClaudeTextMuted, style = MaterialTheme.typography.bodySmall)
+                            Text(text = "View saved offline records (${downloadedLinks.size})", color = ClaudeTextMuted, style = MaterialTheme.typography.bodySmall)
                         }
-                        Box(modifier = Modifier.border(BorderStroke(4.dp, ClaudeAccent), RoundedCornerShape(50.dp)))
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(if(downloadedLinks.isNotEmpty()) ClaudeAccent else ClaudeSurface, RoundedCornerShape(50.dp))
+                                .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(50.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (downloadedLinks.isNotEmpty()) {
+                                Text(text = "${downloadedLinks.size}", color = ClaudeSurface, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
 
@@ -256,9 +360,35 @@ fun HomeScreen(
                             .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 44.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Text(text = "Notices & Circulars", color = ClaudeAccent, style = MaterialTheme.typography.titleMedium)
+                            // 🔄 Heading row featuring the new text-based structural Refresh indicator icon
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Notices & Circulars", color = ClaudeAccent, style = MaterialTheme.typography.titleMedium)
 
-                            if (isNoticesLoading) {
+                                Text(
+                                    text = if (isNoticesLoading) "⏳ Syncing" else "⟳ Refresh",
+                                    color = if (isNoticesLoading) ClaudeTextMuted else ClaudeAccent,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clickable(enabled = !isNoticesLoading) {
+                                            coroutineScope.launch {
+                                                isNoticesLoading = true
+                                                val fresh = NoticeRepository.fetchLatestNotices(context)
+                                                if (fresh.isNotEmpty()) {
+                                                    scrapedNotices = fresh
+                                                }
+                                                isNoticesLoading = false
+                                            }
+                                        }
+                                        .padding(4.dp)
+                                )
+                            }
+
+                            if (isNoticesLoading && scrapedNotices.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(color = ClaudeAccent)
                                 }
@@ -285,7 +415,6 @@ fun HomeScreen(
                                                 modifier = Modifier.padding(start = 12.dp)
                                             ) {
                                                 if (!isDownloaded) {
-                                                    // Clean formatting condition handles raw bytes tags safely
                                                     val buttonLabel = if (notice.size.isEmpty()) {
                                                         "Download PDF"
                                                     } else {
@@ -300,7 +429,13 @@ fun HomeScreen(
                                                         textDecoration = TextDecoration.Underline,
                                                         modifier = Modifier.clickable {
                                                             if (notice.link.isNotEmpty()) {
-                                                                downloadedLinks.add(notice.link)
+                                                                coroutineScope.launch {
+                                                                    val file = NoticeRepository.downloadPdfToFile(context, notice.link)
+                                                                    if (file != null) {
+                                                                        downloadedLinks.add(notice.link)
+                                                                        NoticeRepository.saveDownloadedLinks(context, downloadedLinks)
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                     )
@@ -319,16 +454,7 @@ fun HomeScreen(
                                                         fontWeight = FontWeight.Bold,
                                                         textDecoration = TextDecoration.Underline,
                                                         modifier = Modifier.clickable {
-                                                            try {
-                                                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                                    setDataAndType(Uri.parse(notice.link), "application/pdf")
-                                                                    flags = Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                                                }
-                                                                context.startActivity(Intent.createChooser(intent, "Open PDF with"))
-                                                            } catch (e: Exception) {
-                                                                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(notice.link))
-                                                                context.startActivity(webIntent)
-                                                            }
+                                                            launchPdfIntent(context, notice.link)
                                                         }
                                                     )
                                                 }
@@ -365,6 +491,26 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+}
+
+private fun launchPdfIntent(context: android.content.Context, linkUrl: String) {
+    try {
+        val targetFile = File(NoticeRepository.getTargetFolder(context), NoticeRepository.getFileNameFromUrl(linkUrl))
+        val contentUri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            targetFile
+        )
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(contentUri, "application/pdf")
+            flags = Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION
+        }
+        context.startActivity(Intent.createChooser(intent, "Open PDF with"))
+    } catch (e: Exception) {
+        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(linkUrl))
+        context.startActivity(webIntent)
     }
 }
 
