@@ -157,8 +157,27 @@ fun HomeScreen(
                     }
                 }
 
+                // Map out the exact subject lists per selected semester
+                val subjectsList = when (selectedSemesterLabel) {
+                    "Semester 1" -> listOf(
+                        "NBCA-101 Fundamentals of Computer and its Applications",
+                        "NBCA-102 Programming in C",
+                        "NBCA-103 Basics of Information System",
+                        "NBCA-104 Mathematics",
+                        "NBCA-105 Soft Skills and Personality Development"
+                    )
+                    "Semester 2" -> listOf(
+                        "NBCA-201 Data Structure",
+                        "NBCA-202 Database Management System",
+                        "NBCA-203 Operating System",
+                        "NBCA-204 Discrete Mathematical Structures",
+                        "NBCA-205 Digital Electronics and Computer Organization"
+                    )
+                    else -> listOf("Subject 1", "Subject 2", "Subject 3", "Subject 4", "Subject 5", "Subject 6")
+                }
+
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    (1..6).forEach { subjectNum ->
+                    subjectsList.forEach { subjectName ->
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -169,7 +188,7 @@ fun HomeScreen(
                                 .padding(horizontal = 20.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
-                            Text(text = "Subject $subjectNum", color = ClaudeTextMain, style = MaterialTheme.typography.titleMedium)
+                            Text(text = subjectName, color = ClaudeTextMain, style = MaterialTheme.typography.titleMedium)
                         }
                     }
                 }
