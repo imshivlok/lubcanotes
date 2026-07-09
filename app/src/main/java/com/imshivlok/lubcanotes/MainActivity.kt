@@ -13,11 +13,11 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.imshivlok.lubcanotes.ui.theme.LUBCANotesTheme
@@ -39,6 +39,17 @@ class MainActivity : ComponentActivity() {
 fun LUBCANotesApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
+    // Dynamic Profile States for the end user (Starts as a clean slate)
+    var profileName by rememberSaveable { mutableStateOf("") }
+    var profileCourse by rememberSaveable { mutableStateOf("Select Course") }
+    var profileSemester by rememberSaveable { mutableStateOf("Select Semester") }
+    var profileCollege by rememberSaveable { mutableStateOf("") }
+
+    // Dynamically calculate first name or fallback to generic "User" if field is unassigned
+    val firstName = remember(profileName) {
+        profileName.trim().split("\\s+".toRegex()).firstOrNull()?.takeIf { it.isNotEmpty() } ?: "User"
+    }
+
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             AppDestinations.entries.forEach {
@@ -59,11 +70,25 @@ fun LUBCANotesApp() {
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             when (currentDestination) {
                 AppDestinations.HOME -> {
-                    // We will build your 4 category buttons here next
-                    HomeScreen(modifier = Modifier.padding(innerPadding))
+                    HomeScreen(
+                        userName = firstName,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
                 AppDestinations.PROFILE -> {
-                    ProfileScreen(modifier = Modifier.padding(innerPadding))
+                    ProfileScreen(
+                        name = profileName,
+                        course = profileCourse,
+                        semester = profileSemester,
+                        college = profileCollege,
+                        onProfileChanged = { updatedName, updatedCourse, updatedSemester, updatedCollege ->
+                            profileName = updatedName
+                            profileCourse = updatedCourse
+                            profileSemester = updatedSemester
+                            profileCollege = updatedCollege
+                        },
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }

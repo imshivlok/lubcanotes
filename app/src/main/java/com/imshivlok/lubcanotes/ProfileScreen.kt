@@ -18,14 +18,14 @@ import androidx.compose.ui.unit.dp
 import com.imshivlok.lubcanotes.ui.theme.*
 
 @Composable
-fun ProfileScreen(modifier: Modifier = Modifier) {
-    // In-memory profile data holder
-    var name by remember { mutableStateOf("Shivlok Sharma") }
-    var course by remember { mutableStateOf("BCA") }
-    var semester by remember { mutableStateOf("Semester 1") }
-    var college by remember { mutableStateOf("Lucknow University") }
-
-    // Navigation toggle state within profile branch
+fun ProfileScreen(
+    name: String,
+    course: String,
+    semester: String,
+    college: String,
+    onProfileChanged: (String, String, String, String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     var isEditing by remember { mutableStateOf(false) }
 
     if (!isEditing) {
@@ -40,7 +40,7 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 1. Round Center Top Dummy Profile Icon
+            // Profile Avatar Surface
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -57,19 +57,31 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 )
             }
 
-            // 2. Profile Meta Details
+            // User Info Meta Grid Display Block
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(text = name, style = MaterialTheme.typography.headlineSmall, color = ClaudeTextMain)
-                Text(text = "$course • $semester", style = MaterialTheme.typography.bodyMedium, color = ClaudeTextMuted)
-                Text(text = college, style = MaterialTheme.typography.bodyMedium, color = ClaudeTextMuted)
+                Text(
+                    text = name.ifEmpty { "Set Username" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (name.isEmpty()) ClaudeTextMuted else ClaudeTextMain
+                )
+                Text(
+                    text = "$course • $semester",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ClaudeTextMuted
+                )
+                Text(
+                    text = college.ifEmpty { "No College Assigned" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ClaudeTextMuted
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 3. Circular Rectangle Edit Profile Pill Button
+            // Edit Workspace Pill Trigger Component
             Button(
                 onClick = { isEditing = true },
                 shape = RoundedCornerShape(50.dp),
@@ -89,8 +101,8 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
     } else {
         // --- EDIT MODE SCREEN ---
         var tempName by remember { mutableStateOf(name) }
-        var tempCourse by remember { mutableStateOf(course) }
-        var tempSemester by remember { mutableStateOf(semester) }
+        var tempCourse by remember { mutableStateOf(if (course == "Select Course") "" else course) }
+        var tempSemester by remember { mutableStateOf(if (semester == "Select Semester") "" else semester) }
         var tempCollege by remember { mutableStateOf(college) }
 
         var courseDropdownExpanded by remember { mutableStateOf(false) }
@@ -105,11 +117,9 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
         ) {
             Text(text = "Edit Profile Info", style = MaterialTheme.typography.titleLarge, color = ClaudeTextMain)
 
-            // Circular editable profile avatar action area at the top center of edit page
+            // Circular Photo Trigger Button Anchor
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -118,33 +128,25 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                         .clip(CircleShape)
                         .background(ClaudeSurface)
                         .border(BorderStroke(1.dp, ClaudeBorder), CircleShape)
-                        .clickable { /* Action item loop to open device local image storage picker goes here later */ },
+                        .clickable { },
                     contentAlignment = Alignment.Center
                 ) {
-                    // Base profile vector asset
                     Icon(
                         painter = painterResource(id = R.drawable.ic_account_box),
-                        contentDescription = "Edit Profile Picture Container",
+                        contentDescription = "Edit Profile Image Button",
                         modifier = Modifier.size(48.dp),
                         tint = ClaudeTextMuted.copy(alpha = 0.4f)
                     )
-
-                    // Semi-transparent overlay with indicator text trigger element
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.05f)),
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.05f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "📸",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
+                        Text(text = "📸", style = MaterialTheme.typography.headlineSmall)
                     }
                 }
             }
 
-            // Name Input Field
+            // Name Field
             OutlinedTextField(
                 value = tempName,
                 onValueChange = { tempName = it },
@@ -153,15 +155,15 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = ClaudeAccent)
             )
 
-            // Course & Semester Dropdown Layout in a Single Row
+            // Course & Semester Choice Matrix Selection Group Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Course Select Dropdown
+                // Course Dropdown Menu Box
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
-                        value = tempCourse,
+                        value = tempCourse.ifEmpty { "Select Course" },
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Course") },
@@ -179,10 +181,10 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                     Box(modifier = Modifier.matchParentSize().clickable { courseDropdownExpanded = true })
                 }
 
-                // Semester Select Dropdown
+                // Semester Dropdown Menu Box
                 Box(modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
-                        value = tempSemester,
+                        value = tempSemester.ifEmpty { "Select Sem" },
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Semester") },
@@ -205,7 +207,7 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 }
             }
 
-            // College / University Text Box Input
+            // College TextField Box Component
             OutlinedTextField(
                 value = tempCollege,
                 onValueChange = { tempCollege = it },
@@ -216,7 +218,7 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Save and Cancel Actions Group Row
+            // Footer Execution Controls Row Stack
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -229,10 +231,12 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 }
                 Button(
                     onClick = {
-                        name = tempName
-                        course = tempCourse
-                        semester = tempSemester
-                        college = tempCollege
+                        onProfileChanged(
+                            tempName,
+                            tempCourse.ifEmpty { "Select Course" },
+                            tempSemester.ifEmpty { "Select Semester" },
+                            tempCollege
+                        )
                         isEditing = false
                     },
                     modifier = Modifier.weight(1f),
