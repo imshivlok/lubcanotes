@@ -34,160 +34,242 @@ fun HomeScreen(
     userName: String,
     modifier: Modifier = Modifier
 ) {
-    // Local state tracking to handle sub-navigation inside the Home branch
-    // "" = Main Dashboard view, "Notes" = Semester Cards view
+    // Navigation routing states: "" = Main Dashboard, "Notes" = Semesters View, "Subjects" = Subjects View
     var currentSubView by remember { mutableStateOf("") }
+    var selectedSemesterLabel by remember { mutableStateOf("") }
 
-    if (currentSubView == "Notes") {
-        // --- NOTES SUB-VIEW (3 ROWS x 2 COLUMNS) ---
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(ClaudeBackground)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // Header with Back Button arrow alternative
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+    when (currentSubView) {
+        "Notes" -> {
+            // --- NOTES SUB-VIEW (3 ROWS x 2 COLUMNS) ---
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(ClaudeBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Text(
-                    text = "←",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = ClaudeAccent,
-                    modifier = Modifier
-                        .clickable { currentSubView = "" }
-                        .padding(end = 12.dp)
-                )
-                Column {
+                // Header with Back Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Select Semester",
+                        text = "←",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = ClaudeAccent,
+                        modifier = Modifier
+                            .clickable { currentSubView = "" }
+                            .padding(end = 12.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Select Semester",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = ClaudeTextMain
+                        )
+                        Text(
+                            text = "BCA Academic Syllabus",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ClaudeTextMuted
+                        )
+                    }
+                }
+
+                // 3 Rows x 2 Columns Flat Grid Structure
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ClaudeGridCard(title = "Semester 1", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 1"
+                            currentSubView = "Subjects"
+                        }
+                        ClaudeGridCard(title = "Semester 2", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 2"
+                            currentSubView = "Subjects"
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ClaudeGridCard(title = "Semester 3", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 3"
+                            currentSubView = "Subjects"
+                        }
+                        ClaudeGridCard(title = "Semester 4", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 4"
+                            currentSubView = "Subjects"
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ClaudeGridCard(title = "Semester 5", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 5"
+                            currentSubView = "Subjects"
+                        }
+                        ClaudeGridCard(title = "Semester 6", modifier = Modifier.weight(1f)) {
+                            selectedSemesterLabel = "Semester 6"
+                            currentSubView = "Subjects"
+                        }
+                    }
+                }
+            }
+        }
+
+        "Subjects" -> {
+            // --- SUBJECTS LIST VIEW (5 CARDS, 1 ROW WIDE EACH) ---
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(ClaudeBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // Header with Back Button navigating back to Semesters grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "←",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = ClaudeAccent,
+                        modifier = Modifier
+                            .clickable { currentSubView = "Notes" }
+                            .padding(end = 12.dp)
+                    )
+                    Column {
+                        Text(
+                            text = selectedSemesterLabel,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = ClaudeTextMain
+                        )
+                        Text(
+                            text = "Core Course Modules",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ClaudeTextMuted
+                        )
+                    }
+                }
+
+                // 5 full-width cards stack
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    (1..5).forEach { subjectNum ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp)
+                                .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                                .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                                .clickable { /* Action to launch PDF viewer later */ }
+                                .padding(horizontal = 20.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Text(
+                                text = "Subject $subjectNum",
+                                color = ClaudeTextMain,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        else -> {
+            // --- MAIN DASHBOARD VIEW ---
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(ClaudeBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                // 1. Welcome Header
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Welcome, $userName",
                         style = MaterialTheme.typography.headlineMedium,
                         color = ClaudeTextMain
                     )
                     Text(
-                        text = "BCA Academic Syllabus",
+                        text = "Your workspace is up to date",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ClaudeTextMuted
                     )
                 }
-            }
 
-            // 3 Rows x 2 Columns Flat Grid Structure
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    ClaudeGridCard(title = "Semester 1", modifier = Modifier.weight(1f)) { /* Route to Sem 1 PDFs later */ }
-                    ClaudeGridCard(title = "Semester 2", modifier = Modifier.weight(1f)) { /* Route to Sem 2 PDFs later */ }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    ClaudeGridCard(title = "Semester 3", modifier = Modifier.weight(1f)) { /* Route to Sem 3 PDFs later */ }
-                    ClaudeGridCard(title = "Semester 4", modifier = Modifier.weight(1f)) { /* Route to Sem 4 PDFs later */ }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    ClaudeGridCard(title = "Semester 5", modifier = Modifier.weight(1f)) { /* Route to Sem 5 PDFs later */ }
-                    ClaudeGridCard(title = "Semester 6", modifier = Modifier.weight(1f)) { /* Route to Sem 6 PDFs later */ }
-                }
-            }
-        }
-    } else {
-        // --- MAIN DASHBOARD VIEW ---
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .background(ClaudeBackground)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // 1. Welcome Header
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "Welcome, $userName",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = ClaudeTextMain
-                )
-                Text(
-                    text = "Your workspace is up to date",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = ClaudeTextMuted
-                )
-            }
-
-            // 2. Category Grid
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Clicking Notes sets the local state to shift views seamlessly
-                    ClaudeGridCard(title = "Notes", modifier = Modifier.weight(1f)) {
-                        currentSubView = "Notes"
-                    }
-                    ClaudeGridCard(title = "PYQ", modifier = Modifier.weight(1f)) {}
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    ClaudeGridCard(title = "Calendar", modifier = Modifier.weight(1f)) {}
-                    ClaudeGridCard(title = "Time Table", modifier = Modifier.weight(1f)) {}
-                }
-            }
-
-            // 3. Downloaded Content Card
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
-                    .background(ClaudeSurface, RoundedCornerShape(12.dp))
-                    .clickable { }
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = "Downloaded Content", color = ClaudeTextMain, style = MaterialTheme.typography.titleMedium)
-                        Text(text = "View saved offline records", color = ClaudeTextMuted, style = MaterialTheme.typography.bodySmall)
-                    }
-                    Box(modifier = Modifier.border(BorderStroke(4.dp, ClaudeAccent), RoundedCornerShape(50.dp)))
-                }
-            }
-
-            // 4. Notices & Circulars Box
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-                    .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
-                    .background(ClaudeSurface, RoundedCornerShape(12.dp))
-                    .padding(24.dp)
-            ) {
+                // 2. Category Grid
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(
-                        text = "Notices & Circulars",
-                        color = ClaudeAccent,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text(text = "• B.C.A examination schedules updated for current batches.", color = ClaudeTextMain, style = MaterialTheme.typography.bodyMedium)
-                        Text(text = "• Official campus holiday declaration notice appended.", color = ClaudeTextMuted, style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ClaudeGridCard(title = "Notes", modifier = Modifier.weight(1f)) {
+                            currentSubView = "Notes"
+                        }
+                        ClaudeGridCard(title = "PYQ", modifier = Modifier.weight(1f)) {}
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ClaudeGridCard(title = "Calendar", modifier = Modifier.weight(1f)) {}
+                        ClaudeGridCard(title = "Time Table", modifier = Modifier.weight(1f)) {}
+                    }
+                }
+
+                // 3. Downloaded Content Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                        .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                        .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                        .clickable { }
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(text = "Downloaded Content", color = ClaudeTextMain, style = MaterialTheme.typography.titleMedium)
+                            Text(text = "View saved offline records", color = ClaudeTextMuted, style = MaterialTheme.typography.bodySmall)
+                        }
+                        Box(modifier = Modifier.border(BorderStroke(4.dp, ClaudeAccent), RoundedCornerShape(50.dp)))
+                    }
+                }
+
+                // 4. Notices & Circulars Box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
+                        .background(ClaudeSurface, RoundedCornerShape(12.dp))
+                        .padding(24.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = "Notices & Circulars",
+                            color = ClaudeAccent,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(text = "• B.C.A examination schedules updated for current batches.", color = ClaudeTextMain, style = MaterialTheme.typography.bodyMedium)
+                            Text(text = "• Official campus holiday declaration notice appended.", color = ClaudeTextMuted, style = MaterialTheme.typography.bodyMedium)
+                        }
                     }
                 }
             }
