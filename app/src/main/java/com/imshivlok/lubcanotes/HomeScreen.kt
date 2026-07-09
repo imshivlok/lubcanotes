@@ -17,7 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.imshivlok.lubcanotes.ui.theme.*
@@ -31,11 +33,11 @@ fun HomeScreen(
     var selectedSemesterLabel by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    // Live state containers for web scraping data stream
     var scrapedNotices by remember { mutableStateOf<List<UniversityNotice>>(emptyList()) }
     var isNoticesLoading by remember { mutableStateOf(true) }
 
-    // Fetch live announcements on launch hook
+    val downloadedLinks = remember { mutableStateListOf<String>() }
+
     LaunchedEffect(Unit) {
         scrapedNotices = NoticeRepository.fetchLatestNotices()
         isNoticesLoading = false
@@ -43,7 +45,6 @@ fun HomeScreen(
 
     when (currentSubView) {
         "Notes" -> {
-            // --- NOTES SUB-VIEW (3 ROWS x 2 COLUMNS) ---
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -91,7 +92,6 @@ fun HomeScreen(
         }
 
         "Subjects" -> {
-            // --- SUBJECTS LIST VIEW FOR NOTES (6 SUBJECT CARDS, 1 ROW WIDE EACH) ---
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -138,7 +138,6 @@ fun HomeScreen(
         }
 
         "PYQ" -> {
-            // --- PYQ SCREEN (6 CARDS, 1 ROW WIDE EACH) ---
             Column(
                 modifier = modifier
                     .fillMaxSize()
@@ -220,7 +219,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Downloaded Content Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -255,7 +253,7 @@ fun HomeScreen(
                             .wrapContentHeight()
                             .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(12.dp))
                             .background(ClaudeSurface, RoundedCornerShape(12.dp))
-                            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 36.dp) // Added padding space at bottom for half overlap bounds
+                            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 44.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text(text = "Notices & Circulars", color = ClaudeAccent, style = MaterialTheme.typography.titleMedium)
@@ -265,15 +263,13 @@ fun HomeScreen(
                                     CircularProgressIndicator(color = ClaudeAccent)
                                 }
                             } else {
-                                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                     scrapedNotices.forEach { notice ->
+                                        val isDownloaded = downloadedLinks.contains(notice.link)
+
                                         Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable(enabled = notice.link.isNotEmpty()) {
-                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(notice.link))
-                                                    context.startActivity(intent)
-                                                }
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Text(
                                                 text = "• ${notice.title}",
@@ -282,13 +278,60 @@ fun HomeScreen(
                                                 maxLines = 2,
                                                 overflow = TextOverflow.Ellipsis
                                             )
-                                            if (notice.date.isNotEmpty()) {
-                                                Text(
-                                                    text = "  ${notice.date}",
-                                                    color = ClaudeTextMuted,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                                                )
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.padding(start = 12.dp)
+                                            ) {
+                                                if (!isDownloaded) {
+                                                    // Clean formatting condition handles raw bytes tags safely
+                                                    val buttonLabel = if (notice.size.isEmpty()) {
+                                                        "Download PDF"
+                                                    } else {
+                                                        "Download PDF [${notice.size}]"
+                                                    }
+
+                                                    Text(
+                                                        text = buttonLabel,
+                                                        color = ClaudeAccent,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        textDecoration = TextDecoration.Underline,
+                                                        modifier = Modifier.clickable {
+                                                            if (notice.link.isNotEmpty()) {
+                                                                downloadedLinks.add(notice.link)
+                                                            }
+                                                        }
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = "Downloaded",
+                                                        color = ClaudeTextMuted,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontStyle = FontStyle.Italic
+                                                    )
+
+                                                    Text(
+                                                        text = "Open",
+                                                        color = ClaudeAccent,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        textDecoration = TextDecoration.Underline,
+                                                        modifier = Modifier.clickable {
+                                                            try {
+                                                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                                    setDataAndType(Uri.parse(notice.link), "application/pdf")
+                                                                    flags = Intent.FLAG_ACTIVITY_NO_HISTORY or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                                                }
+                                                                context.startActivity(Intent.createChooser(intent, "Open PDF with"))
+                                                            } catch (e: Exception) {
+                                                                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(notice.link))
+                                                                context.startActivity(webIntent)
+                                                            }
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -297,10 +340,9 @@ fun HomeScreen(
                         }
                     }
 
-                    // 💊 "View More" Pill Button Container (Centered, half inside, half outside)
                     Box(
                         modifier = Modifier
-                            .offset(y = 18.dp) // Offset exactly half of button's height to split position border bounds
+                            .offset(y = 18.dp)
                             .height(36.dp)
                             .background(ClaudeSurface, RoundedCornerShape(50.dp))
                             .border(BorderStroke(1.dp, ClaudeBorder), RoundedCornerShape(50.dp))
@@ -320,7 +362,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Extra padding bottom space layout placeholder underneath overlapping button boundaries
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }

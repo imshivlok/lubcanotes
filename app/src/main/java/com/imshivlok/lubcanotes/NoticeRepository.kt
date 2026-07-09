@@ -9,7 +9,8 @@ import java.net.URL
 data class UniversityNotice(
     val title: String,
     val date: String,
-    val link: String
+    val link: String,
+    val size: String
 )
 
 object NoticeRepository {
@@ -20,7 +21,6 @@ object NoticeRepository {
             val url = URL(LKO_UNI_URL)
             val connection = url.openConnection() as HttpURLConnection
 
-            // Inject browser profile headers natively into the connection stream
             connection.requestMethod = "GET"
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
             connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
@@ -28,15 +28,11 @@ object NoticeRepository {
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
 
-            // Idiomatic Kotlin reading method (Removes manual loops entirely)
             val htmlContent = connection.inputStream.bufferedReader().use { it.readText() }
             connection.disconnect()
 
-            // Parse unblocked source content text straight into Jsoup DOM tree
             val doc = Jsoup.parse(htmlContent, LKO_UNI_URL)
             val parsedNotices = mutableListOf<UniversityNotice>()
-
-            // Scope targeting down directly to the core ASP content form row lines
             val rows = doc.select("form#form1 tr, .news_row")
 
             for (row in rows) {
@@ -47,9 +43,22 @@ object NoticeRepository {
                     continue
                 }
 
-                val titleText = anchor.text()
-                    .replace(Regex("^\\d+\\.\\s*"), "")
-                    .replace(Regex("pdf\\s*\\[.*\\]", RegexOption.IGNORE_CASE), "")
+                val anchorText = anchor.text()
+                val rowText = row.text()
+
+                // 🎯 Bulletproof Size Extractor: Scan both anchor and parent row text for any brackets containing file metrics
+                val sizeRegex = Regex("\\[([^\\]]*(?:KB|MB|kb|mb|Bytes|pdf|PDF)[^\\]]*)\\]")
+                val matchResult = sizeRegex.find(anchorText) ?: sizeRegex.find(rowText)
+
+                var fileSize = matchResult?.groupValues?.get(1)?.replace(Regex("pdf", RegexOption.IGNORE_CASE), "")?.trim() ?: ""
+                if (fileSize.isEmpty() || fileSize.all { !it.isDigit() }) {
+                    fileSize = "" // Clear it out if it doesn't contain actual data size numbers
+                }
+
+                // Clean the title description line fully
+                val titleText = anchorText
+                    .replace(Regex("^\\d+\\.\\s*"), "") // Strip serial numbers
+                    .replace(Regex("pdf\\s*\\[.*$", RegexOption.IGNORE_CASE), "") // Strip trailing file size noise
                     .trim()
 
                 if (titleText.length <= 8 || titleText.contains("Search here", ignoreCase = true)) {
@@ -75,14 +84,15 @@ object NoticeRepository {
                     UniversityNotice(
                         title = titleText,
                         date = dateText,
-                        link = rawLink
+                        link = rawLink,
+                        size = fileSize
                     )
                 )
 
                 if (parsedNotices.size >= 5) break
             }
 
-            // Secondary backup stream if the table structure renders blank
+            // Fallback emergency scanner if the table matrix shifts layout values
             if (parsedNotices.isEmpty()) {
                 val emergencyAnchors = doc.select("a[href*=.pdf]")
                 for (anchor in emergencyAnchors) {
@@ -90,11 +100,15 @@ object NoticeRepository {
                     val text = anchor.text().trim()
 
                     if (text.length > 8 && !parsedNotices.any { it.link == link }) {
+                        val sizeMatch = Regex("\\[([^\\]]+)\\]").find(text)
+                        val fileSize = sizeMatch?.groupValues?.get(1)?.replace(Regex("pdf", RegexOption.IGNORE_CASE), "")?.trim() ?: ""
+
                         parsedNotices.add(
                             UniversityNotice(
-                                title = text.replace(Regex("^\\d+\\.\\s*"), ""),
+                                title = text.replace(Regex("^\\d+\\.\\s*"), "").replace(Regex("pdf\\s*\\[.*$", RegexOption.IGNORE_CASE), ""),
                                 date = "Recent",
-                                link = link
+                                link = link,
+                                size = if (fileSize.any { it.isDigit() }) fileSize else ""
                             )
                         )
                     }
@@ -107,8 +121,8 @@ object NoticeRepository {
         } catch (e: Exception) {
             e.printStackTrace()
             listOf(
-                UniversityNotice("Unable to synchronize with Lucknow University noticeboard.", "Offline", ""),
-                UniversityNotice("Check your internet parameters and try again.", "Alert", "")
+                UniversityNotice("Unable to synchronize with Lucknow University noticeboard.", "Offline", "", ""),
+                UniversityNotice("Check your internet parameters and try again.", "Alert", "", "")
             )
         }
     }
