@@ -1,20 +1,31 @@
 package com.imshivlok.lubcanotes
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.imshivlok.lubcanotes.ui.theme.*
 
 @Composable
@@ -27,6 +38,29 @@ fun ProfileScreen(
     modifier: Modifier = Modifier
 ) {
     var isEditing by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // 💾 Grab persistent storage instance
+    val sharedPrefs = remember { context.getSharedPreferences("LUBCANotes_Prefs", Context.MODE_PRIVATE) }
+
+    // Initialize image state from storage so it is completely non-volatile
+    var imageUriString by remember { mutableStateOf(sharedPrefs.getString("profile_image_uri", "") ?: "") }
+
+    // 📸 Safe Photo Picker Setup
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                // Secure persistable read access right across device restarts
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(it, flag)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            imageUriString = it.toString()
+        }
+    }
 
     if (!isEditing) {
         // --- VIEW MODE ---
@@ -34,13 +68,14 @@ fun ProfileScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(ClaudeBackground)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Profile Avatar Surface
+            // Non-volatile Profile Avatar Surface Display Block
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -49,12 +84,21 @@ fun ProfileScreen(
                     .border(BorderStroke(1.dp, ClaudeBorder), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_account_box),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier.size(48.dp),
-                    tint = ClaudeTextMuted
-                )
+                if (imageUriString.isNotEmpty()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = Uri.parse(imageUriString)),
+                        contentDescription = "Active User Profile Photo View",
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_account_box),
+                        contentDescription = "Fallback Profile Vector Graphic",
+                        modifier = Modifier.size(48.dp),
+                        tint = ClaudeTextMuted
+                    )
+                }
             }
 
             // User Info Meta Grid Display Block
@@ -81,7 +125,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Edit Workspace Pill Trigger Component
+            // Edit Profile Button Trigger
             Button(
                 onClick = { isEditing = true },
                 shape = RoundedCornerShape(50.dp),
@@ -112,12 +156,13 @@ fun ProfileScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(ClaudeBackground)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(text = "Edit Profile Info", style = MaterialTheme.typography.titleLarge, color = ClaudeTextMain)
 
-            // Circular Photo Trigger Button Anchor
+            // Interactive Photo Trigger Button Box Component
             Box(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -128,17 +173,30 @@ fun ProfileScreen(
                         .clip(CircleShape)
                         .background(ClaudeSurface)
                         .border(BorderStroke(1.dp, ClaudeBorder), CircleShape)
-                        .clickable { },
+                        .clickable { photoPickerLauncher.launch("image/*") }, // Launches secure photo selector
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_account_box),
-                        contentDescription = "Edit Profile Image Button",
-                        modifier = Modifier.size(48.dp),
-                        tint = ClaudeTextMuted.copy(alpha = 0.4f)
-                    )
+                    if (imageUriString.isNotEmpty()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(model = Uri.parse(imageUriString)),
+                            contentDescription = "Editable Photo State Selector Preview",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_account_box),
+                            contentDescription = "Edit Profile Image Button Icon",
+                            modifier = Modifier.size(48.dp),
+                            tint = ClaudeTextMuted.copy(alpha = 0.4f)
+                        )
+                    }
+
+                    // Subtle overlay indicating pick action availability
                     Box(
-                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.05f)),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = "📸", style = MaterialTheme.typography.headlineSmall)
@@ -169,7 +227,11 @@ fun ProfileScreen(
                         label = { Text("Course") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = false,
-                        colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = ClaudeBorder, disabledLabelColor = ClaudeTextMuted, disabledTextColor = ClaudeTextMain)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor = ClaudeBorder,
+                            disabledLabelColor = ClaudeTextMuted,
+                            disabledTextColor = ClaudeTextMain
+                        )
                     )
                     DropdownMenu(
                         expanded = courseDropdownExpanded,
@@ -190,7 +252,11 @@ fun ProfileScreen(
                         label = { Text("Semester") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = false,
-                        colors = OutlinedTextFieldDefaults.colors(disabledBorderColor = ClaudeBorder, disabledLabelColor = ClaudeTextMuted, disabledTextColor = ClaudeTextMain)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledBorderColor = ClaudeBorder,
+                            disabledLabelColor = ClaudeTextMuted,
+                            disabledTextColor = ClaudeTextMain
+                        )
                     )
                     DropdownMenu(
                         expanded = semDropdownExpanded,
@@ -220,7 +286,7 @@ fun ProfileScreen(
 
             // Footer Execution Controls Row Stack
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedButton(
@@ -231,6 +297,16 @@ fun ProfileScreen(
                 }
                 Button(
                     onClick = {
+                        // 💾 Commit image selection string paths straight down to Shared Prefs alongside form parameters
+                        sharedPrefs.edit().apply {
+                            putString("profile_image_uri", imageUriString)
+                            putString("profile_name", tempName)
+                            putString("profile_course", tempCourse.ifEmpty { "Select Course" })
+                            putString("profile_roll", tempSemester.ifEmpty { "Select Semester" }) // maps schema identifiers
+                            putString("profile_college", tempCollege)
+                            apply()
+                        }
+
                         onProfileChanged(
                             tempName,
                             tempCourse.ifEmpty { "Select Course" },

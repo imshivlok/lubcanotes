@@ -20,8 +20,6 @@ object NoticeRepository {
     private const val LKO_UNI_URL = "https://www.lkouniv.ac.in/en/news?Newslistslug=en-notices&cd=MwAzADcA"
     private const val PREFS_NAME = "LUBCANotes_Prefs"
     private const val DOWNLOADED_LINKS_KEY = "downloaded_pdf_links"
-
-    // 💾 Cache keys for notice elements persistence
     private const val CACHED_NOTICES_KEY = "cached_university_notices"
 
     suspend fun fetchLatestNotices(context: Context? = null): List<UniversityNotice> = withContext(Dispatchers.IO) {
@@ -86,57 +84,26 @@ object NoticeRepository {
                     }
                 }
 
-                parsedNotices.add(
-                    UniversityNotice(titleText, dateText, rawLink, fileSize)
-                )
-
+                parsedNotices.add(UniversityNotice(titleText, dateText, rawLink, fileSize))
                 if (parsedNotices.size >= 5) break
             }
 
-            if (parsedNotices.isEmpty()) {
-                val emergencyAnchors = doc.select("a[href*=.pdf]")
-                for (anchor in emergencyAnchors) {
-                    val link = anchor.attr("abs:href")
-                    val text = anchor.text().trim()
-
-                    if (text.length > 8 && !parsedNotices.any { it.link == link }) {
-                        val sizeMatch = Regex("\\[([^\\]]+)\\]").find(text)
-                        val fileSize = sizeMatch?.groupValues?.get(1)?.replace(Regex("pdf", RegexOption.IGNORE_CASE), "")?.trim() ?: ""
-
-                        parsedNotices.add(
-                            UniversityNotice(
-                                text.replace(Regex("^\\d+\\.\\s*"), "").replace(Regex("pdf\\s*\\[.*$", RegexOption.IGNORE_CASE), ""),
-                                "Recent",
-                                link,
-                                if (fileSize.any { it.isDigit() }) fileSize else ""
-                            )
-                        )
-                    }
-                    if (parsedNotices.size >= 5) break
-                }
-            }
-
-            // Save the live successful crawl list array right into shared memory cache
             if (context != null && parsedNotices.isNotEmpty()) {
                 saveNoticesToCache(context, parsedNotices)
             }
-
             parsedNotices
-
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
         }
     }
 
-    // 💾 Serializes the Notice structures into safe strings for disk caching
     fun saveNoticesToCache(context: Context, notices: List<UniversityNotice>) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val serializedSet = notices.map { "${it.title}|||${it.date}|||${it.link}|||${it.size}" }.toSet()
         prefs.edit().putStringSet(CACHED_NOTICES_KEY, serializedSet).apply()
     }
 
-    // 🔄 Instant Cache Retrieval Engine
     fun loadNoticesFromCache(context: Context): List<UniversityNotice> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val savedSet = prefs.getStringSet(CACHED_NOTICES_KEY, emptySet()) ?: emptySet()
@@ -154,9 +121,7 @@ object NoticeRepository {
     fun getTargetFolder(context: Context): File {
         val baseFolder = context.getExternalFilesDir(null) ?: context.filesDir
         val lubcaFolder = File(baseFolder, "LUBCANotes")
-        if (!lubcaFolder.exists()) {
-            lubcaFolder.mkdirs()
-        }
+        if (!lubcaFolder.exists()) lubcaFolder.mkdirs()
         return lubcaFolder
     }
 
@@ -171,7 +136,7 @@ object NoticeRepository {
             val url = URL(urlStr)
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
             connection.doInput = true
@@ -188,15 +153,11 @@ object NoticeRepository {
                     }
                 }
                 targetFile
-            } else {
-                null
-            }
+            } else { null }
         } catch (e: Exception) {
             e.printStackTrace()
             null
-        } finally {
-            connection?.disconnect()
-        }
+        } finally { connection?.disconnect() }
     }
 
     fun saveDownloadedLinks(context: Context, links: List<String>) {
@@ -207,7 +168,6 @@ object NoticeRepository {
     fun loadAndVerifyDownloadedLinks(context: Context): List<String> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val savedLinks = prefs.getStringSet(DOWNLOADED_LINKS_KEY, emptySet()) ?: emptySet()
-
         val verifiedLinks = mutableListOf<String>()
         val lubcaFolder = getTargetFolder(context)
 
@@ -217,10 +177,7 @@ object NoticeRepository {
                 verifiedLinks.add(link)
             }
         }
-
-        if (verifiedLinks.size != savedLinks.size) {
-            saveDownloadedLinks(context, verifiedLinks)
-        }
+        if (verifiedLinks.size != savedLinks.size) saveDownloadedLinks(context, verifiedLinks)
         return verifiedLinks
     }
 }

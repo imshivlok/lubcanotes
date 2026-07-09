@@ -1,13 +1,16 @@
 package com.imshivlok.lubcanotes
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -16,13 +19,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import coil.compose.rememberAsyncImagePainter
 import com.imshivlok.lubcanotes.ui.theme.*
 import kotlinx.coroutines.launch
 import java.io.File
@@ -42,13 +49,19 @@ fun HomeScreen(
 
     val downloadedLinks = remember { mutableStateListOf<String>() }
 
-    // Instant load lifecycle sequence
+    // Persistent Storage Configs
+    val sharedPrefs = remember { context.getSharedPreferences("LUBCANotes_Prefs", Context.MODE_PRIVATE) }
+    var persistentName by remember { mutableStateOf(userName) }
+    var savedImageUriString by remember { mutableStateOf("") }
+
     LaunchedEffect(Unit) {
+        persistentName = sharedPrefs.getString("profile_name", userName) ?: userName
+        savedImageUriString = sharedPrefs.getString("profile_image_uri", "") ?: ""
+
         val verifiedLinks = NoticeRepository.loadAndVerifyDownloadedLinks(context)
         downloadedLinks.clear()
         downloadedLinks.addAll(verifiedLinks)
 
-        // 🔄 STEP 1: Pop cache instantly onto UI fields so screens never load completely blank
         val localCache = NoticeRepository.loadNoticesFromCache(context)
         if (localCache.isNotEmpty()) {
             scrapedNotices = localCache
@@ -56,7 +69,6 @@ fun HomeScreen(
             isNoticesLoading = true
         }
 
-        // 📡 STEP 2: Fetch updates silently or populate container layout background streams
         val freshNotices = NoticeRepository.fetchLatestNotices(context)
         if (freshNotices.isNotEmpty()) {
             scrapedNotices = freshNotices
@@ -290,9 +302,39 @@ fun HomeScreen(
                     .padding(horizontal = 24.dp, vertical = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = "Welcome, $userName", style = MaterialTheme.typography.headlineMedium, color = ClaudeTextMain)
-                    Text(text = "Your workspace is up to date", style = MaterialTheme.typography.bodyMedium, color = ClaudeTextMuted)
+                // 📸 Aligned Header Row: Placing your circular profile icon beautifully to the right side of Welcome text
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(text = "Welcome, $persistentName", style = MaterialTheme.typography.headlineMedium, color = ClaudeTextMain)
+                        Text(text = "Your workspace is up to date", style = MaterialTheme.typography.bodyMedium, color = ClaudeTextMuted)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .border(BorderStroke(1.dp, ClaudeBorder), CircleShape)
+                            .background(ClaudeSurface, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (savedImageUriString.isNotEmpty()) {
+                            Image(
+                                painter = rememberAsyncImagePainter(model = Uri.parse(savedImageUriString)),
+                                contentDescription = "Dashboard Profile Photo Preview",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+                                contentDescription = "Fallback Vector Profile Icon",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -360,7 +402,6 @@ fun HomeScreen(
                             .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 44.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            // 🔄 Heading row featuring the new text-based structural Refresh indicator icon
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
