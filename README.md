@@ -31,4 +31,4 @@
 - **Data Flow:** Strict Uni-directional Data Flow (UDF) lifecycle architecture.
 
 ---
-*Maintained by [Shivlok Sharma](https://github.com/imshivlok).*
+*Built & Maintained by [Shivlok Sharma](https://github.com/imshivlok).*
